@@ -16,9 +16,11 @@ esphome:
   on_boot:
     priority: 500
     then:
-      - text_sensor.template.publish:
-          id: apollo_firmware_version
-          state: "${version}"
+      # 1. Fixed the broken text_sensor action using a lambda
+      - lambda: |-
+          id(apollo_firmware_version).publish_state("${version}");
+          
+      # 2. Retained all original Apollo deep sleep & power management logic below
       - switch.turn_on: accessory_power
       - lambda: |-
           id(deep_sleep_1).set_run_duration(id(deep_sleep_run_duration).state * 1000);
@@ -29,7 +31,7 @@ esphome:
               - binary_sensor.is_on: ota_mode
               - switch.is_on: prevent_sleep
           then:
-             - lambda: |- 
+            - lambda: |- 
                 ESP_LOGW("Apollo", "Preventing Deep Sleep Due To OTA On Boot");
                 id(deep_sleep_1).prevent_deep_sleep(); 
 
@@ -55,9 +57,9 @@ esphome:
                           - binary_sensor.is_off: ota_mode
                           - switch.is_off: prevent_sleep
                       then:
-                      - switch.turn_off: accessory_power
-                      - deep_sleep.enter:
-                          id: deep_sleep_1
+                        - switch.turn_off: accessory_power
+                        - deep_sleep.enter:
+                            id: deep_sleep_1
                   
   on_shutdown:
     - light.turn_off: rgb_light
